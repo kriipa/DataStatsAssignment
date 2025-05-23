@@ -1,0 +1,640 @@
+
+# Installed required packages
+```{r}
+install.packages("matlib")
+install.packages("rsample")
+```
+
+# Imported libraries
+```{r}
+library(matlib)
+library(ggplot2)
+library(rsample)
+```
+
+# Reading the dataset
+```{r}
+data <- read.csv("/Users/kriipa/Downloads/dataset.csv")
+str(data)
+head(data)
+```
+
+
+# Checking for missing values in each column
+```{r}
+
+null_Values <- data.frame(
+  Missing_Values = colSums(is.na(data))
+)
+
+print(null_Values)
+
+```
+
+# Check if any duplicates
+```{r}
+# Count duplicate rows
+sum(duplicated(data))
+
+```
+
+# Display a summary of the dataset, showing basic statistics for numerical variables and frequency counts for categorical variables.
+```{r}
+summary(data)
+```
+
+
+# Separated the dataset into independent variables (X) and dependent variable (Y).
+# Displayed the first few rows of both X and Y to check the separation.
+```{r}
+X <- data[, c("x1", "x3", "x4", "x5")]  # Independent variables
+Y <- data[, "x2", drop = FALSE]         # Dependent variable
+
+# Check
+head(X)
+head(Y)
+
+```
+
+#2.1
+
+```{r}
+
+# Created an observation index and added it as a new column to the dataset.
+data$Observation <- 1:nrow(data)
+
+# Subsetted the first 500 observations for analysis.
+data_sub <- data[1:500, ]
+
+# Plotted time series for each variable (x1, x3, x4, x5, x2) using ggplot2:
+# Each plot includes appropriate labels and color schemes to visualize trends for each variable.
+
+# Input: x1 - Temperature
+ggplot(data_sub,   aes(x = Observation, y = x1)) +
+  geom_line( color="navy") +
+  labs(title = "Time Series: Ambient Temperature (x1)", 
+       x = "Observation", y = "Temperature (°C)")
+
+# Input: x3 - Ambient Pressure
+ggplot(data_sub, aes(x = Observation, y = x3)) +
+  geom_line( color = "maroon") +
+  labs(title = "Time Series: Ambient Pressure (x3)",
+       x = "Observation", y = "Pressure (millibar)")
+
+# Input: x4 - Relative Humidity
+ggplot(data_sub, aes(x = Observation, y = x4)) +
+  geom_line( color = "forestgreen") +
+  labs(title = "Time Series: Relative Humidity (x4)",
+       x = "Observation", y = "Humidity (%)")
+
+# Input: x5 - Exhaust Vacuum
+ggplot(data_sub, aes(x = Observation, y = x5)) +
+  geom_line( color = "gold") +
+  labs(title = "Time Series: Exhaust Vacuum (x5)",
+       x = "Observation", y = "Vacuum (cm Hg)")
+
+# Output: x2 - Net hourly electrical energy output
+ggplot(data_sub, aes(x = Observation, y = x2)) +
+  geom_line( color = "brown") +
+  labs(title = "Time Series: Net Hourly Electrical Energy Output (x2)",
+       x = "Observation", y = "Energy Output (MW)")
+
+
+```
+
+# Generated histograms and density plots for each variable (x1, x3, x4, x5, x2).
+# For each variable, a histogram with density scaling was created, overlaid with a density plot to visualize the distribution.
+
+```{r}
+ # A map  to associate each variable with its physical meaning for title labeling.
+for (col in c("x1", "x3", "x4", "x5", "x2")) {
+  var_map <- c(
+    x1 = "Ambient Temperature (°C)", 
+    x3 = "Ambient Pressure (millibar)", 
+    x4 = "Relative Humidity (%)", 
+    x5 = "Exhaust Vacuum (cm Hg)", 
+    x2 = "Net Hourly Electrical Energy Output (MW)"
+  )
+  
+# For each variable, a histogram with 30 bins and a density plot were displayed to visualize the distribution and spread of data.
+  print(
+    ggplot(data, aes_string(x = col)) +
+      geom_histogram(aes(y = ..density..), bins = 30, fill = "peachpuff3", color = "black", alpha = 0.7) +
+      geom_density(color = "maroon", linewidth = 1) +
+      labs(
+        title = paste("Histogram and Density of", var_map[col]),
+        x = var_map[col],
+        y = "Density"
+      )
+  )
+}
+
+```
+
+
+# 1.2
+
+```{r}
+# Calculate and round correlation matrix
+cor_matrix <- cor(data[, c("x1", "x3", "x4", "x5", "x2")])
+
+# The matrix was rounded to two decimal places for clarity.
+cor_table <- round(cor_matrix, 2)
+
+# Converted the correlation matrix to a data frame for a more readable table output.
+cor_df <- as.data.frame(cor_table)
+
+print(cor_df)
+```
+
+# Plotted scatter plots for each input variable against the dependent variable (x2).
+# Each scatter plot included a linear regression line to show the relationship between the input and output variables.
+```{r}
+inputs <- c("x1", "x3", "x4", "x5")
+var_map <- c(
+  x1 = "Ambient Temperature (°C)", 
+  x3 = "Ambient Pressure (millibar)", 
+  x4 = "Relative Humidity (%)", 
+  x5 = "Exhaust Vacuum (cm Hg)", 
+  x2 = "Net Hourly Electrical Energy Output (MW)"
+)
+
+for (input in inputs) {
+  print(
+    ggplot(data, aes_string(x = input, y = "x2")) +
+      geom_point(alpha = 0.5, color="peachpuff4") +
+      geom_smooth(method = "lm", color = "maroon", se = FALSE, linewidth=1) +
+      labs(
+        title = paste(var_map["x2"], "vs", var_map[input]),
+        x = var_map[input],
+        y = var_map["x2"]
+      )
+  )
+}
+
+
+
+```
+
+# Correlation matrix
+```{r}
+# Create a correlation matrix dataframe for ggplot2
+inputs_outputs <- c("x1","x3","x4","x5","x2")
+
+cor_matrix <- cor(data[, inputs_outputs])
+cor_df <- as.data.frame(as.table(cor_matrix))
+
+ggplot(cor_df, aes(Var1, Var2, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = round(Freq, 2)), color = "white", size = 4) +
+  labs(
+    title = "Correlation Heatmap",
+    x = "",
+    y = "",
+    fill = "Correlation"
+  ) +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "pink", midpoint = 0)
+
+```
+
+# Visualized the relationship between temperature (x1) and energy output (x2) with scatter points.
+```{r}
+ggplot(data, aes(x = x1, y = x2)) +
+  geom_point(alpha = 0.4, color="seagreen") +
+  geom_density2d(color = "black") +
+  labs(title = "Density Contours: Temperature vs Energy Output",
+       x = "Temperature (°C)", y = "Energy Output (MW)")
+
+```
+
+# Explored how humidity (x4) influences the relationship between temperature (x1) and energy output (x2).
+# Created a scatter plot with points colored based on humidity levels to visualize this effect.
+```{r}
+# analyzing how humidity influences the temperature-energy output relationship:
+ggplot(data, aes(x = x1, y = x2, color = x4)) +
+  geom_point(alpha = 0.5) +
+  labs(title = "Temperature vs Energy Output (Colored by Humidity)",
+       x = "Temperature (°C)", y = "Energy Output (MW)", color = "Humidity (%)")
+
+```
+
+
+## TASK 2.1
+
+# Defined a helper function to compute least squares coefficients using generalized inverse.
+```{r}
+least_squares_coef <- function(x, y) {
+  MASS::ginv(t(x) %*% x) %*% t(x) %*% y
+}
+
+Y <- data[, "x2"]
+
+# Model fits
+model1 <- as.matrix(cbind(x4 = data$x4, x3_sq = data$x3^2, bias = 1))
+theta_1 <- as.numeric(least_squares_coef(model1, Y))
+
+model2 <- as.matrix(cbind(x4 = data$x4, x3_sq = data$x3^2, x5 = data$x5, bias = 1))
+theta_2 <- as.numeric(least_squares_coef(model2, Y))
+
+model3 <- as.matrix(cbind(x3 = data$x3, x4 = data$x4, x5_cub = data$x5^3))
+theta_3 <- as.numeric(least_squares_coef(model3, Y))
+
+model4 <- as.matrix(cbind(x4 = data$x4, x3_sq = data$x3^2, x5_cub = data$x5^3, bias = 1))
+theta_4 <- as.numeric(least_squares_coef(model4, Y))
+
+model5 <- as.matrix(cbind(x4 = data$x4, x1_sq = data$x1^2, x3_sq = data$x3^2, bias = 1))
+theta_5 <- as.numeric(least_squares_coef(model5, Y))
+
+# Build a table
+coef_table <- data.frame(
+  Model = c("Model 1", "Model 2", "Model 3", "Model 4", "Model 5"),
+  `θ1` = c(theta_1[1], theta_2[1], theta_3[1], theta_4[1], theta_5[1]),
+  `θ2` = c(theta_1[2], theta_2[2], theta_3[2], theta_4[2], theta_5[2]),
+  `θ3` = c(NA, theta_2[3], theta_3[3], theta_4[3], theta_5[3]),
+  Bias = c(theta_1[3], theta_2[4], NA, theta_4[4], theta_5[4])
+)
+
+# Round for clarity
+coef_table[, -1] <- round(coef_table[, -1], 4)
+
+# printed
+cat("Task 2.1: Model Coefficient Estimates Table\n")
+print(coef_table, row.names = FALSE, na.print = "")
+
+```
+
+
+# Task 2.2
+
+# Computed the Residual Sum of Squares (RSS) for each model to measure the fit error.
+```{r}
+# Task 2.2: Compute RSS for all models
+
+# Model 1
+y_hat_1 <- model1 %*% theta_1
+rss_1 <- sum((Y - y_hat_1)^2)
+
+# Model 2
+y_hat_2 <- model2 %*% theta_2
+rss_2 <- sum((Y - y_hat_2)^2)
+
+# Model 3 (no bias)
+y_hat_3 <- model3 %*% theta_3
+rss_3 <- sum((Y - y_hat_3)^2)
+
+# Model 4
+y_hat_4 <- model4 %*% theta_4
+rss_4 <- sum((Y - y_hat_4)^2)
+
+# Model 5
+y_hat_5 <- model5 %*% theta_5
+rss_5 <- sum((Y - y_hat_5)^2)
+
+# Make a neat table
+rss_table <- data.frame(
+  Model = paste0("Model ", 1:5),
+  RSS = round(c(rss_1, rss_2, rss_3, rss_4, rss_5), 4)
+)
+
+cat("Task 2.2: Residual Sum of Squares (RSS) Table\n")
+print(rss_table, row.names = FALSE)
+```
+
+
+# Task 2.3
+# Defined a function to calculate the log-likelihood based on RSS and sample size.
+```{r}
+n <- nrow(data)
+loglik_fun <- function(RSS, n) {
+  sigma2_hat <- RSS / (n - 1)
+  term1 <- -n / 2 * log(2 * pi)
+  term2 <- -n / 2 * log(sigma2_hat)
+  term3 <- -RSS / (2 * sigma2_hat)
+  term1 + term2 + term3
+}
+
+loglik1 <- loglik_fun(rss_1, n)
+loglik2 <- loglik_fun(rss_2, n)
+loglik3 <- loglik_fun(rss_3, n)
+loglik4 <- loglik_fun(rss_4, n)
+loglik5 <- loglik_fun(rss_5, n)
+
+# Created a table summarizing the log-likelihoods and identified the best model with the highest value.
+loglik_values <- c(loglik1, loglik2, loglik3, loglik4, loglik5)
+loglik_table <- data.frame(
+  Model = paste0("Model ", 1:5),
+  LogLikelihood = round(loglik_values, 4)
+)
+
+# Find best model (highest log-likelihood)
+best_idx <- which.max(loglik_table$LogLikelihood)
+loglik_table$Best <- ""
+loglik_table$Best[best_idx] <- "<-- Highest"
+
+cat("Task 2.3: Log-Likelihood Table\n")
+print(loglik_table, row.names = FALSE)
+
+# Higher log-likelihood values (less negative) indicate a better fit to the data
+```
+
+
+
+# Task 2.4
+# Calculated AIC and BIC values for all models using log-likelihood and parameter counts.
+```{r}
+# Number of parameters in each model
+k <- c(3, 4, 3, 4, 4)
+
+# Compute AIC and BIC for each model
+aic_values <- 2 * k - 2 * loglik_values
+bic_values <- k * log(n) - 2 * loglik_values
+
+# Make the table
+info_criteria_table <- data.frame(
+  Model = paste0("Model ", 1:5),
+  aic = round(aic_values, 4),
+  best_aic = "",
+  bic = round(bic_values, 4),
+  best_bic = ""
+)
+
+# Indicate best (lowest) AIC and BIC
+info_criteria_table$best_aic[which.min(info_criteria_table$aic)] <- "<-- Lowest"
+info_criteria_table$best_bic[which.min(info_criteria_table$bic)] <- "<-- Lowest"
+
+cat("Task 2.4: AIC and BIC Table")
+print(info_criteria_table, row.names = FALSE)
+
+```
+
+
+# Task 2.5
+# Plotted histograms and Q-Q plots of residuals for all models to assess normality and distribution.
+```{r}
+residuals1 <- Y - as.vector(model1 %*% theta_1)
+residuals2 <- Y - as.vector(model2 %*% theta_2)
+residuals3 <- Y - as.vector(model3 %*% theta_3)
+residuals4 <- Y - as.vector(model4 %*% theta_4)
+residuals5 <- Y - as.vector(model5 %*% theta_5)
+
+# Plot histograms and Q-Q plots in one window
+par(mfrow = c(1, 1), mar = c(4, 4, 2, 1)) # 5 rows, 2 columns
+
+# Model 1
+hist(residuals1, main = "Model 1 Residuals Histogram", xlab = "Residuals", col="seagreen")
+qqnorm(residuals1, main = "Model 1 Q-Q Plot", col="peachpuff4")
+qqline(residuals1)
+# Model 2
+hist(residuals2, main = "Model 2 Residuals Histogram", xlab = "Residuals", col="seagreen")
+qqnorm(residuals2, main = "Model 2 Q-Q Plot", col="peachpuff4")
+qqline(residuals2)
+# Model 3
+hist(residuals3, main = "Model 3 Residuals Histogram", xlab = "Residuals", col="seagreen")
+qqnorm(residuals3, main = "Model 3 Q-Q Plot", col="peachpuff4")
+qqline(residuals3)
+# Model 4
+hist(residuals4, main = "Model 4 Residuals Histogram", xlab = "Residuals", col="seagreen")
+qqnorm(residuals4, main = "Model 4 Q-Q Plot", col="peachpuff4")
+qqline(residuals4)
+# Model 5
+hist(residuals5, main = "Model 5 Residuals Histogram", xlab = "Residuals", col="seagreen")
+qqnorm(residuals5, main = "Model 5 Q-Q Plot", col="peachpuff4")
+qqline(residuals5)
+
+par(mfrow = c(1, 1)) # Reset layout
+```
+
+
+# TASK 2.6
+# Sampled up to 5000 residuals from each model if residuals exceeded that size.
+
+```{r}
+set.seed(42) # for reproducibility
+sample_size <- 5000
+
+# Only sample if your residual vector is larger than 5000
+sample1 <- if (length(residuals1) > sample_size) sample(residuals1, sample_size) else residuals1
+sample2 <- if (length(residuals2) > sample_size) sample(residuals2, sample_size) else residuals2
+sample3 <- if (length(residuals3) > sample_size) sample(residuals3, sample_size) else residuals3
+sample4 <- if (length(residuals4) > sample_size) sample(residuals4, sample_size) else residuals4
+sample5 <- if (length(residuals5) > sample_size) sample(residuals5, sample_size) else residuals5
+
+shapiro1 <- shapiro.test(sample1)
+shapiro2 <- shapiro.test(sample2)
+shapiro3 <- shapiro.test(sample3)
+shapiro4 <- shapiro.test(sample4)
+shapiro5 <- shapiro.test(sample5)
+
+cat("Shapiro-Wilk p-values:\n")
+cat("Model 1:", shapiro1$p.value, "\n")
+cat("Model 2:", shapiro2$p.value, "\n")
+cat("Model 3:", shapiro3$p.value, "\n")
+cat("Model 4:", shapiro4$p.value, "\n")
+cat("Model 5:", shapiro5$p.value, "\n")
+
+```
+
+# 2.7
+# Split the dataset into training (70%) and testing (30%) subsets using random sampling.
+#1
+```{r}
+# 1. Split Data (70% train, 30% test)
+set.seed(123)
+n <- nrow(data)
+train_idx <- sample(seq_len(n), size = 0.7 * n)
+
+# Training and testing splits
+train_data <- data[train_idx, ]
+test_data  <- data[-train_idx, ]
+```
+
+# Prepared the training input matrix by combining variables x4, squared terms of x1 and x3, and a bias term.
+#2
+```{r}
+# Training:
+X5_train <- as.matrix(cbind(train_data$x4, train_data$x1^2, train_data$x3^2, 1))
+Y_train <- train_data$x2
+```
+
+
+# Testing
+```{r}
+X5_test <- as.matrix(cbind(test_data$x4, test_data$x1^2, test_data$x3^2, 1))
+Y_test <- test_data$x2
+```
+
+#3. Fit the Model (Estimate Parameters)
+```{r}
+#This is an ordinary least squares regression:
+theta_hat5 <- solve(t(X5_train) %*% X5_train) %*% t(X5_train) %*% Y_train
+```
+
+
+# 4. Compute 95% Prediction Intervals
+# Predicted output values on the test set using the trained model coefficients.
+```{r}
+#Predict on Test Data
+
+Y_pred <- as.vector(X5_test %*% theta_hat5)
+
+# Here’s a method that works for general linear models (not using lm, but your matrix approach):
+
+# Calculate sigma^2 (estimate of variance)
+residuals_train <- Y_train - as.vector(X5_train %*% theta_hat5)
+sigma2_hat <- sum(residuals_train^2) / (nrow(X5_train) - ncol(X5_train))
+
+# Standard errors for predictions
+XtX_inv <- solve(t(X5_train) %*% X5_train)
+se_pred <- sqrt(apply(X5_test, 1, function(xi) {
+    sigma2_hat * (1 + t(xi) %*% XtX_inv %*% xi)
+}))
+
+# 95% interval (z-value ≈ 1.96)
+lower <- Y_pred - 1.96 * se_pred
+upper <- Y_pred + 1.96 * se_pred
+```
+
+# 5. Plot Results
+```{r}
+# Setting transluscent color for arrows
+transparent_col <- adjustcolor("peachpuff4", alpha.f = 0.6)
+
+# Y_test is test data
+plot(Y_test, pch = 16, col = "black", xlab = "Test Sample", ylab = "x2", main = "Model 5 Predictions with 95% Interval")
+
+# Y_pred is predicted data
+points(Y_pred, pch = 16, col = "plum")
+
+# arrows indicates 95% interval
+arrows(1:length(Y_pred), lower, 1:length(Y_pred), upper, angle = 90, code = 3, length = 0.03, col = transparent_col)
+
+# indexing for clarity
+legend("topright", legend = c("Observed", "Predicted", "95% Interval"), col = c("black", "plum", "peachpuff4"), pch = c(16, 16, NA), lty = c(NA, NA, 1))
+
+```
+
+# Calculated the width of the 95% prediction intervals for the test set.
+```{r}
+interval_width <- upper - lower
+plot(interval_width,
+    main = "Width of 95% Prediction Intervals (Test Set)",
+    xlab = "Test Sample Index", ylab = "Interval Width",
+    pch = 16, col = "plum"
+)
+```
+
+#------- task 3-----
+
+
+# 1. Identify 2 Parameters with Largest Absolute Value
+```{r}
+abs_theta <- abs(theta_5)
+largest_idx <- order(abs_theta, decreasing = TRUE)[1:2]
+cat("Indices of largest coefficients:", largest_idx, "\n")
+cat("Values:", theta_5[largest_idx], "\n")
+```
+
+
+# 2. Set Uniform Priors Around Their Estimates
+```{r}
+prior_range <- 0.2 # +/- 20%
+param1_hat <- theta_5[largest_idx[1]]
+param2_hat <- theta_5[largest_idx[2]]
+
+param1_prior <- c(param1_hat * (1 - prior_range), param1_hat * (1 + prior_range))
+param2_prior <- c(param2_hat * (1 - prior_range), param2_hat * (1 + prior_range))
+```
+
+# Fix All Other Coefficients to Least Squares Estimates
+```{r}
+fixed_thetas <- theta_5
+fixed_thetas[largest_idx] <- NA # these two vary in ABC
+
+X_abc <- model5 # your design matrix for Model 5
+Y_abc <- as.vector(Y) # true outputs
+```
+
+# Run Rejection ABC
+```{r}
+set.seed(123)
+N <- 10000
+
+# Ensure param priors are sorted properly
+param1_prior <- sort(param1_prior)
+param2_prior <- sort(param2_prior)
+
+# Sample from uniform priors
+param1_samples <- runif(N, min = param1_prior[1], max = param1_prior[2])
+param2_samples <- runif(N, min = param2_prior[1], max = param2_prior[2])
+
+distances <- numeric(N)
+
+# Check for NA in input data once
+if (anyNA(X_abc)) stop("X_abc contains NA values!")
+if (anyNA(Y_abc)) stop("Y_abc contains NA values!")
+
+for (i in 1:N) {
+  theta <- fixed_thetas
+  
+  # Replace NA with 0 for safe multiplication
+  theta[is.na(theta)] <- 0
+  
+  # Update theta with current samples
+  theta[largest_idx[1]] <- param1_samples[i]
+  theta[largest_idx[2]] <- param2_samples[i]
+  
+  Y_sim <- as.vector(X_abc %*% theta)
+  
+  # Guard against NA or NaN in prediction
+  if (any(is.na(Y_sim)) || any(is.nan(Y_sim))) {
+    distances[i] <- NA
+  } else {
+    distances[i] <- sum((Y_sim - Y_abc)^2)
+  }
+}
+
+# Filter out NA distances before quantile calculation
+valid_idx <- which(!is.na(distances))
+distances_valid <- distances[valid_idx]
+
+# Calculate epsilon (1% quantile)
+epsilon <- quantile(distances_valid, 0.01)
+
+# Select accepted samples based on epsilon threshold
+accepted_valid <- valid_idx[which(distances_valid <= epsilon)]
+
+posterior_param1 <- param1_samples[accepted_valid]
+posterior_param2 <- param2_samples[accepted_valid]
+
+```
+
+# 4. Plot Posterior Marginals and Joint Distribution
+```{r}
+par(mfrow = c(1, 1))
+hist(posterior_param1,
+     breaks = 30, col = "lightblue",
+     main = paste("Marginal Posterior: Parameter", largest_idx[1]),
+     xlab = "Parameter Value"
+)
+hist(posterior_param2,
+     breaks = 30, col = "seagreen",
+     main = paste("Marginal Posterior: Parameter", largest_idx[2]),
+     xlab = "Parameter Value"
+)
+
+par(mfrow = c(1, 1))
+
+plot(posterior_param1, posterior_param2,
+     pch = 16, cex = 0.5,
+     col = rgb(0, 0, 1, 0.3), main = "Joint Posterior Distribution",
+     xlab = paste("Parameter", largest_idx[1]),
+     ylab = paste("Parameter", largest_idx[2])
+)
+```
+
+
+```{r}
+library(rmarkdown)
+render("KripaDatatask.Rmd", output_format = "md_document")
+```
+
